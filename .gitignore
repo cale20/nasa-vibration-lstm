@@ -1,0 +1,16 @@
+echo "# Ignore raw and processed data
+/data/raw/
+/data/processed/
+/*.npy
+
+/venv/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+
+# VS Code settings (optional)
+.vscode/" > .gitignore
