@@ -55,3 +55,4 @@ def read_memmap_metadata(memmap_path):
             return json.load(fh)
     except Exception:
         return None
+
