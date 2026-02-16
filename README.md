@@ -2,7 +2,7 @@
 
 Predictive maintenance with vibration sensor data from NASA’s IMS dataset.
 
-This project demonstrates professional ML pipeline design for anomaly detection in rotating machinery, laying the groundwork for a deep learning LSTM autoencoder.
+This project demonstrates ML pipeline design for anomaly detection in rotating machinery, laying the groundwork for a deep learning LSTM autoencoder.
 
 ---
 
@@ -94,6 +94,7 @@ Inspect the Machine Health Curve and anomaly scores to see temporal trends and e
 - [NASA IMS Bearing Dataset](https://data.nasa.gov/dataset/ims-bearings)  
 - [Isolation Forest Documentation](https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.IsolationForest.html)  
 - [NumPy Memmap Documentation](https://numpy.org/doc/stable/reference/generated/numpy.memmap.html)  
+
 
 
 
