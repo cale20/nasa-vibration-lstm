@@ -27,21 +27,35 @@ This project demonstrates ML pipeline design for anomaly detection in rotating m
 
 ## 📂 Project Structure (Simplified)
 ```text
-├── data/
-│ ├── raw/IMS/ # Original vibration files
-│ └── processed/ # Memmap, scaler, scores, trained baseline model
-├── notebooks/ # Exploratory analysis & visualization
-├── src/ # Production-ready ML pipeline
-│ ├── config.py
-│ ├── dataset.py
-│ ├── preprocessing.py
-│ ├── train_isolation_forest.py
-│ └── utils.py
-├── models/ # Future LSTM autoencoder artifacts
-├── tests/ # Unit tests (planned)
-├── venv/ # Python environment
-├── requirements.txt
-└── README.md
+nasa-vibration-lstm/
+├── data
+│   ├── processed
+│   │   ├── figures
+│   │   ├── all_sequences.dat
+│   │   ├── all_sequences.dat.meta.json
+│   │   ├── anomaly_scores.npy
+│   │   ├── global_scaler.save
+│   │   └── isolation_forest.model
+│   └── raw
+│       └── IMS
+├── models
+├── notebooks
+│   └── baseline_anomaly.ipynb
+├── src
+│   ├── config.py
+│   ├── dataset.py
+│   ├── evaluate.py
+│   ├── pipeline.py
+│   ├── preprocessing.py
+│   ├── run_preprocessing.py
+│   ├── train_isolation_forest.py
+│   ├── utils.py
+│   └── __init__.py
+├── tests
+├── .gitignore
+├── README.md
+└── requirements.txt
+
 ```
 
 ---
@@ -104,6 +118,7 @@ Machine health curve figure is saved in `data/processed/figures/`
 - [NASA IMS Bearing Dataset](https://data.nasa.gov/dataset/ims-bearings)  
 - [Isolation Forest Documentation](https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.IsolationForest.html)  
 - [NumPy Memmap Documentation](https://numpy.org/doc/stable/reference/generated/numpy.memmap.html)  
+
 
 
 
