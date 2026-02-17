@@ -63,7 +63,7 @@ python -m pip install -r requirements.txt
 
 Data placement:
 
-- Download and place the NASA IMS raw files under `data/raw/`
+- Download [NASA IMS Bearing Dataset](https://data.nasa.gov/dataset/ims-bearings) and place it under `data/raw/`
 
 How to run:
 
@@ -104,6 +104,7 @@ Machine health curve figure is saved in `data/processed/figures/`
 - [NASA IMS Bearing Dataset](https://data.nasa.gov/dataset/ims-bearings)  
 - [Isolation Forest Documentation](https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.IsolationForest.html)  
 - [NumPy Memmap Documentation](https://numpy.org/doc/stable/reference/generated/numpy.memmap.html)  
+
 
 
 
