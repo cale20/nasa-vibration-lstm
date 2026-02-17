@@ -8,6 +8,7 @@ Preprocessing pipeline:
 - Memmap dataset creation
 """
 import os
+import logging
 import numpy as np
 from sklearn.preprocessing import StandardScaler
 import joblib
@@ -38,7 +39,7 @@ def fit_global_scaler(files):
             signal = np.loadtxt(file_path, dtype=np.float32).reshape(-1, 1)
             all_samples.append(signal)
         except Exception as e:
-            print(f"Skipping {file_path}: {e}")
+            logging.warning("Skipping %s: %s", file_path, e)
 
     if len(all_samples) == 0:
         raise ValueError(
@@ -50,9 +51,10 @@ def fit_global_scaler(files):
     scaler = StandardScaler()
     scaler.fit(all_samples)
 
-    print("✅ Global scaler fitted")
-    print("Samples used:", all_samples.shape)
+    logging.info("Global scaler fitted")
+    logging.info("Samples used: %s", all_samples.shape)
 
+    os.makedirs(CONFIG["processed_folder"], exist_ok=True)
     joblib.dump(scaler, os.path.join(CONFIG["processed_folder"], "global_scaler.save"))
 
     return scaler
@@ -70,7 +72,7 @@ def create_memmap_dataset(files, scaler):
         signal = np.loadtxt(f)
         exact_total += len(create_sequences(signal.reshape(-1,1), seq_length, stride))
     if exact_total != total_sequences:
-        print(f"ℹ️ Adjusting memmap allocation: estimated {total_sequences} -> exact {exact_total}")
+        logging.info("Adjusting memmap allocation: estimated %s -> exact %s", total_sequences, exact_total)
         total_sequences = exact_total
     memmap_file = CONFIG["memmap_file"]
     dataset = np.memmap(memmap_file, dtype='float32', mode='w+', shape=(total_sequences, seq_length, 1))
@@ -79,7 +81,7 @@ def create_memmap_dataset(files, scaler):
     for f in files[:CONFIG["num_files_to_process"]]:
         signal = np.loadtxt(f).reshape(-1,1)
         if len(signal) < seq_length:
-            print(f"⚠️ Skipping {f} — too short for sequences")
+            logging.warning("Skipping %s — too short for sequences", f)
             continue
         scaled = scaler.transform(signal)
         seqs = create_sequences(scaled, seq_length, stride)
@@ -98,5 +100,10 @@ def create_memmap_dataset(files, scaler):
     }
     write_memmap_metadata(memmap_file, meta)
 
-    print(f"✅ Memmap dataset created: {memmap_file} | total sequences (allocated): {total_sequences} | written: {actual_sequences}")
+    logging.info(
+        "Memmap dataset created: %s | total sequences (allocated): %s | written: %s",
+        memmap_file,
+        total_sequences,
+        actual_sequences,
+    )
     return memmap_file

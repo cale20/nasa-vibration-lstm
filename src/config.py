@@ -29,3 +29,22 @@ CONFIG = {
     "contamination": 0.01,
     "n_estimators": 50
 }
+
+
+def configure_logging(level=None):
+    """Configure basic logging for CLI/entry scripts."""
+    import logging
+
+    if level is None:
+        level = logging.INFO
+    logging.basicConfig(level=level, format="[%(levelname)s] %(message)s")
+
+
+def ensure_output_dirs():
+    """Create expected output directories (safe to call repeatedly)."""
+    os.makedirs(CONFIG["processed_folder"], exist_ok=True)
+    memmap_dir = os.path.dirname(CONFIG["memmap_file"])
+    if memmap_dir:
+        os.makedirs(memmap_dir, exist_ok=True)
+    models_dir = os.path.join(BASE_DIR, "models")
+    os.makedirs(models_dir, exist_ok=True)

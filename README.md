@@ -46,22 +46,32 @@ This project demonstrates ML pipeline design for anomaly detection in rotating m
 
 ---
 
-## ⚡ Quick Start
+## ⚡ Quick Start (Demo-ready)
 
-### Install dependencies
-`pip install -r requirements.txt`
+Prerequisites:
 
-### Preprocess data
-`python -m src.run_preprocessing`
+- Python 3.11.9 (create and activate a virtual environment before installing)
 
-### Train baseline model
-`python -m src.train_isolation_forest`
+Install runtime dependencies:
 
-### Visualize results
-Open the notebook:
-notebooks/baseline_anomaly.ipynb
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+```
 
-Inspect the Machine Health Curve and anomaly scores to see temporal trends and early signs of machine degradation.
+Data placement:
+
+- Download and place the NASA IMS raw files under `data/raw/`
+
+How to run:
+
+```powershell
+python -m src.pipeline
+```
+
+Machine health curve figure is saved in `data/processed/figures/`
 
 ## 📈 Key Takeaways
 
