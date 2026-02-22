@@ -60,8 +60,7 @@ nasa-vibration-lstm/
 
 ---
 
-## ⚡ Quick Start (Demo-ready)
-
+## ⚡ Quick Start
 Prerequisites:
 
 - Python 3.11.9 (create and activate a virtual environment before installing)
@@ -118,6 +117,7 @@ Machine health curve figure is saved in `data/processed/figures/`
 - [NASA IMS Bearing Dataset](https://data.nasa.gov/dataset/ims-bearings)  
 - [Isolation Forest Documentation](https://scikit-learn.org/stable/modules/generated/sklearn.ensemble.IsolationForest.html)  
 - [NumPy Memmap Documentation](https://numpy.org/doc/stable/reference/generated/numpy.memmap.html)  
+
 
 
 
