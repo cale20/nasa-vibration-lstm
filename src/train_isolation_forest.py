@@ -24,7 +24,9 @@ def train(limit: int | None = None) -> str:
     Args:
         limit: if provided and smaller than dataset size, limit training samples.
     """
-    X = load_memmap_dataset(flatten_for_tree=True)
+    # Baseline is intentionally trained on healthy-only windows so
+    # anomalies remain out-of-distribution at inference time.
+    X = load_memmap_dataset(flatten_for_tree=True, split="healthy_train")
 
     # Optionally limit dataset for demo/troubleshooting
     if limit is not None and limit > 0 and X.shape[0] > limit:

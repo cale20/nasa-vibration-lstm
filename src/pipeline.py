@@ -18,6 +18,7 @@ def run() -> dict:
 
     Returns a small dict summarizing outcome (keeps signature simple for now).
     """
+    # Configure once so child entrypoints inherit a single log style.
     configure_logging()
     ensure_output_dirs()
 

@@ -1,16 +1,33 @@
-echo "# Ignore raw and processed data
-/data/raw/
-/data/processed/
-/*.npy
+# Data artifacts (large / machine-local)
+data/raw/
+data/processed/
+models/
+*.npy
+*.npz
+*.dat
+*.meta.json
+*.model
+*.joblib
+*.save
 
-/venv/
+# Python virtual environments
+venv/
+.venv/
+env/
 
-# Python cache
+# Python cache and build outputs
 __pycache__/
-*.pyc
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
 
 # Jupyter checkpoints
 .ipynb_checkpoints/
 
-# VS Code settings (optional)
-.vscode/" > .gitignore
+# Editor/IDE settings
+.vscode/
+.idea/
+
+# Local notes
+learning.txt

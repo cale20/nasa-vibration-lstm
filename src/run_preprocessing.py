@@ -1,3 +1,5 @@
+"""CLI entrypoint for preprocessing artifacts creation."""
+
 import argparse
 import logging
 
@@ -7,6 +9,7 @@ from .config import CONFIG, ensure_output_dirs, configure_logging
 
 
 def main():
+    """Discover files, fit scaler, and create split-aware datasets."""
     parser = argparse.ArgumentParser(description="Run preprocessing pipeline")
     parser.add_argument("--limit", type=int, default=None, help="Limit number of files to process (demo)")
     parser.add_argument("--data-folder", type=str, default=None, help="Override data folder")
@@ -18,6 +21,8 @@ def main():
 
     logging.info("Discovering IMS files...")
 
+    # Allow quick experimentation against alternate folders without
+    # changing global config.
     folder = args.data_folder or CONFIG["data_folder"]
     files = list_ims_files(folder, seq_length=CONFIG["sequence_length"])
     if args.limit:
@@ -28,8 +33,9 @@ def main():
     logging.info("Fitting global scaler...")
     scaler = fit_global_scaler(files)
 
-    logging.info("Creating memmap dataset...")
-    create_memmap_dataset(files, scaler)
+    logging.info("Creating split-aware memmap datasets...")
+    outputs = create_memmap_dataset(files, scaler)
+    logging.info("Created dataset artifacts: %s", outputs)
 
     logging.info("Preprocessing pipeline complete.")
 

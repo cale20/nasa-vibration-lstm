@@ -9,30 +9,55 @@ import os
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 CONFIG = {
-    # Sequence & sliding window
+    # Sequence/window parameters used by all models
     "sequence_length": 100,
     "stride": 5,
     
-    # Preprocessing
+    # Preprocessing and split policy
     "batch_size": 50,
     "healthy_files": 100,
     "num_files_to_process": 400,
+    "healthy_train_files": 80,
+    "healthy_val_files": 20,
     
     # Data paths
     "data_folder": os.path.join(BASE_DIR, "data/raw/IMS/1st_test"),
     "processed_folder": os.path.join(BASE_DIR, "data/processed"),
     "memmap_file": os.path.join(BASE_DIR, "data/processed/all_sequences.dat"),
+    "healthy_train_memmap_file": os.path.join(BASE_DIR, "data/processed/healthy_train_sequences.dat"),
+    "healthy_val_memmap_file": os.path.join(BASE_DIR, "data/processed/healthy_val_sequences.dat"),
+    "split_metadata_file": os.path.join(BASE_DIR, "data/processed/split_metadata.json"),
     "scaler_file": os.path.join(BASE_DIR, "data/processed/global_scaler.save"),
+    "create_all_memmap": True,
+    "max_all_memmap_bytes": 3_500_000_000,
     
-    # Isolation Forest
+    # Isolation Forest baseline parameters
     "max_train_samples": 50000,
     "contamination": 0.01,
-    "n_estimators": 50
+    "n_estimators": 50,
+    "score_threshold_percentile": 1.0,
+    "ae_error_threshold_percentile": 99.0,
+
+    # Autoencoder training parameters
+    "torch_batch_size": 512,
+    "num_workers": 0,
+    "learning_rate": 1e-3,
+    "weight_decay": 0.0,
+    "epochs": 20,
+    "early_stopping_patience": 5,
+    "dense_latent_dim": 32,
+    "lstm_hidden_size": 64,
+    "lstm_num_layers": 1,
+    "lstm_dropout": 0.0,
+
+    # Model artifact paths
+    "dense_autoencoder_model_file": os.path.join(BASE_DIR, "models/dense_autoencoder.pt"),
+    "lstm_autoencoder_model_file": os.path.join(BASE_DIR, "models/lstm_autoencoder.pt"),
 }
 
 
 def configure_logging(level=None):
-    """Configure basic logging for CLI/entry scripts."""
+    """Configure logging for CLI/entry scripts."""
     import logging
 
     if level is None:

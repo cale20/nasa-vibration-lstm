@@ -30,6 +30,8 @@ def list_ims_files(folder, seq_length=100):
     valid_files = []
     for fpath in files:
         try:
+            # Fast sanity check: file must contain enough samples to produce
+            # at least one full sequence window.
             size = len(np.loadtxt(fpath))
         except Exception as exc:
             logging.warning("Unable to read %s: %s", fpath, exc)
