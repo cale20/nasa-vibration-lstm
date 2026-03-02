@@ -34,7 +34,7 @@ def train(limit: int | None = None) -> str:
 
     # Subsample deterministically for reproducible runs
     if X.shape[0] > CONFIG["max_train_samples"]:
-        rng = np.random.default_rng(42)
+        rng = np.random.default_rng(int(CONFIG["random_seed"]))
         idx = rng.choice(X.shape[0], CONFIG["max_train_samples"], replace=False)
         X_train = X[idx]
     else:
@@ -43,7 +43,7 @@ def train(limit: int | None = None) -> str:
     model = IsolationForest(
         n_estimators=CONFIG["n_estimators"],
         contamination=CONFIG["contamination"],
-        random_state=42,
+        random_state=int(CONFIG["random_seed"]),
         n_jobs=-1,
     )
     model.fit(X_train)

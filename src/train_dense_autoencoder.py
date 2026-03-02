@@ -42,6 +42,9 @@ def train(
 ) -> str:
     """Train dense AE on healthy windows and save best validation checkpoint."""
     ensure_output_dirs()
+    torch.manual_seed(int(CONFIG["random_seed"]))
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(int(CONFIG["random_seed"]))
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     # Dense AE consumes flattened windows (shape: batch, seq_len * features).
     train_loader, val_loader = make_torch_dataloaders(flatten=True)
@@ -101,6 +104,7 @@ def train(
                     "latent_dim": CONFIG["dense_latent_dim"],
                     "best_val_loss": best_val,
                     "best_epoch": best_epoch,
+                    "random_seed": int(CONFIG["random_seed"]),
                 },
                 CONFIG["dense_autoencoder_model_file"],
             )

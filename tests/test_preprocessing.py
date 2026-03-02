@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 
-from src.preprocessing import create_sequences, _split_name_for_file_idx
+from src.preprocessing import create_sequences, count_sequences, _split_name_for_file_idx
 
 
 class TestPreprocessing(unittest.TestCase):
@@ -22,6 +22,11 @@ class TestPreprocessing(unittest.TestCase):
         self.assertEqual(_split_name_for_file_idx(80), "healthy_val")
         self.assertEqual(_split_name_for_file_idx(99), "healthy_val")
         self.assertEqual(_split_name_for_file_idx(100), "test_mixed")
+
+    def test_count_sequences_matches_expected_math(self):
+        self.assertEqual(count_sequences(signal_length=10, seq_length=4, stride=3), 3)
+        self.assertEqual(count_sequences(signal_length=4, seq_length=4, stride=2), 1)
+        self.assertEqual(count_sequences(signal_length=3, seq_length=4, stride=1), 0)
 
 
 if __name__ == "__main__":

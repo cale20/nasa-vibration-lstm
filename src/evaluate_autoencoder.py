@@ -128,11 +128,18 @@ def evaluate(model_type: str) -> dict:
                 "threshold": threshold,
                 "percentile": CONFIG["ae_error_threshold_percentile"],
                 "model_type": model_type,
+                "threshold_source_split": "healthy_val",
+                "file_alert_threshold": 0.0,
+                "file_score_name": "anomaly_rate",
             },
             fh,
         )
     with open(os.path.join(diagnostics_dir, f"{prefix}_file_metrics.json"), "w", encoding="utf-8") as fh:
         json.dump(file_metrics, fh)
+    file_scores_arr = np.asarray([row["anomaly_rate"] for row in file_metrics], dtype=np.float32)
+    file_alerts_arr = (file_scores_arr > 0.0).astype(np.uint8)
+    np.save(os.path.join(diagnostics_dir, f"{prefix}_file_scores.npy"), file_scores_arr)
+    np.save(os.path.join(diagnostics_dir, f"{prefix}_file_alerts.npy"), file_alerts_arr)
 
     # Persist plots so notebook and README workflows can reference static artifacts.
     hist_fig, hist_ax = plt.subplots(figsize=(10, 4))

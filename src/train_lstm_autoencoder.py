@@ -42,6 +42,9 @@ def train(
 ) -> str:
     """Train LSTM AE on healthy sequences and save best validation checkpoint."""
     ensure_output_dirs()
+    torch.manual_seed(int(CONFIG["random_seed"]))
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(int(CONFIG["random_seed"]))
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     # LSTM AE expects unflattened sequence tensors (batch, seq_len, features).
     train_loader, val_loader = make_torch_dataloaders(flatten=False)
@@ -104,6 +107,7 @@ def train(
                     "dropout": CONFIG["lstm_dropout"],
                     "best_val_loss": best_val,
                     "best_epoch": best_epoch,
+                    "random_seed": int(CONFIG["random_seed"]),
                 },
                 CONFIG["lstm_autoencoder_model_file"],
             )

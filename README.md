@@ -94,6 +94,21 @@ Generate side-by-side model trend comparison:
 python -m src.compare_models
 ```
 
+Run fully unsupervised quality scoring:
+
+```powershell
+# per model
+python -m src.evaluate_unsupervised --model-type if
+python -m src.evaluate_unsupervised --model-type dense
+python -m src.evaluate_unsupervised --model-type lstm
+
+# all models in one pass
+python -m src.evaluate_unsupervised --all-models
+
+# same behavior through adapter interface
+python -m src.evaluation_interface --kind unsupervised --all-models
+```
+
 Main outputs are written under `data/processed/diagnostics/`.
 
 ## 📈 Technical Takeaways
@@ -141,7 +156,15 @@ Practical reading pattern:
 ## 🧪 Evaluation Scope
 
 This project currently demonstrates unsupervised anomaly trend detection and model comparison on run-to-failure data.  
-Formal change-window accuracy scoring is the next evaluation milestone.
+For NASA IMS (no labels), model selection is performed with unsupervised metrics:
+
+- healthy false alarm rate
+- late-life alert rate
+- Spearman trend strength over file order
+- first persistent alert index (`k-of-m` persistence rule)
+- healthy-vs-late-life signal separation
+
+An evaluation adapter layer is included so change-window scoring can be added later without changing model training.
 
 ---
 

@@ -14,6 +14,20 @@ import numpy as np
 import matplotlib.pyplot as plt
 from datetime import datetime
 
+
+def _has_min_rows(file_path, min_rows):
+    """Return True if text file has at least `min_rows` non-empty lines."""
+    rows = 0
+    with open(file_path, "r", encoding="utf-8", errors="ignore") as fh:
+        for line in fh:
+            if not line.strip():
+                continue
+            rows += 1
+            if rows >= min_rows:
+                return True
+    return False
+
+
 def list_ims_files(folder, seq_length=100):
     """Return IMS file paths that can produce at least one sequence.
 
@@ -30,14 +44,12 @@ def list_ims_files(folder, seq_length=100):
     valid_files = []
     for fpath in files:
         try:
-            # Fast sanity check: file must contain enough samples to produce
-            # at least one full sequence window.
-            size = len(np.loadtxt(fpath))
+            # Quick pass: avoid loading full numeric arrays just to ensure
+            # enough timesteps exist for one sequence.
+            if _has_min_rows(fpath, seq_length):
+                valid_files.append(fpath)
         except Exception as exc:
             logging.warning("Unable to read %s: %s", fpath, exc)
-            continue
-        if size >= seq_length:
-            valid_files.append(fpath)
 
     return valid_files
 

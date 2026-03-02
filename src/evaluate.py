@@ -118,6 +118,10 @@ def machine_health_curve(limit: int | None = None, save_path: str | None = None)
     diagnostics_dir = os.path.join(CONFIG["processed_folder"], "diagnostics")
     os.makedirs(diagnostics_dir, exist_ok=True)
     np.save(os.path.join(diagnostics_dir, "isolation_forest_scores.npy"), scores)
+    file_scores_arr = np.asarray(file_anomaly_rates, dtype=np.float32)
+    file_alerts_arr = (file_scores_arr > 0.0).astype(np.uint8)
+    np.save(os.path.join(diagnostics_dir, "isolation_forest_file_scores.npy"), file_scores_arr)
+    np.save(os.path.join(diagnostics_dir, "isolation_forest_file_alerts.npy"), file_alerts_arr)
     with open(
         os.path.join(diagnostics_dir, "isolation_forest_threshold.json"), "w", encoding="utf-8"
     ) as fh:
@@ -128,6 +132,8 @@ def machine_health_curve(limit: int | None = None, save_path: str | None = None)
                 "num_scores": int(scores.shape[0]),
                 "num_val_scores": int(val_scores.shape[0]),
                 "threshold_source_split": "healthy_val",
+                "file_alert_threshold": 0.0,
+                "file_score_name": "anomaly_rate",
             },
             fh,
         )

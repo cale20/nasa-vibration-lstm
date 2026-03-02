@@ -24,6 +24,13 @@ def create_sequences(signal, seq_length, stride=5):
         sequences.append(signal[i:i+seq_length])
     return np.array(sequences, dtype=np.float32)
 
+
+def count_sequences(signal_length, seq_length, stride):
+    """Return number of sliding windows without materializing sequences."""
+    if signal_length < seq_length:
+        return 0
+    return ((signal_length - seq_length) // stride) + 1
+
 def fit_global_scaler(files):
     """Fit a single scaler on early-life healthy files only.
 
@@ -38,27 +45,26 @@ def fit_global_scaler(files):
             "No files were found. Check your data path."
         )
 
-    all_samples = []
+    scaler = StandardScaler()
+    total_rows = 0
+    fit_files = 0
 
     for file_path in sample_files:
         try:
             signal = np.loadtxt(file_path, dtype=np.float32).reshape(-1, 1)
-            all_samples.append(signal)
+            scaler.partial_fit(signal)
+            total_rows += int(signal.shape[0])
+            fit_files += 1
         except Exception as e:
             logging.warning("Skipping %s: %s", file_path, e)
 
-    if len(all_samples) == 0:
+    if fit_files == 0:
         raise ValueError(
             "Files were discovered but none could be loaded. Check file format."
         )
 
-    all_samples = np.vstack(all_samples)
-
-    scaler = StandardScaler()
-    scaler.fit(all_samples)
-
     logging.info("Global scaler fitted")
-    logging.info("Samples used: %s", all_samples.shape)
+    logging.info("Files used: %s | Samples used: %s", fit_files, total_rows)
 
     os.makedirs(CONFIG["processed_folder"], exist_ok=True)
     joblib.dump(scaler, os.path.join(CONFIG["processed_folder"], "global_scaler.save"))
@@ -128,7 +134,7 @@ def create_memmap_dataset(files, scaler):
     # allocation, which keeps memmap shapes deterministic.
     for file_idx, fpath in enumerate(files_to_process):
         signal = np.loadtxt(fpath, dtype=np.float32).reshape(-1, 1)
-        n_seqs = len(create_sequences(signal, seq_length, stride))
+        n_seqs = count_sequences(len(signal), seq_length, stride)
         if n_seqs <= 0:
             continue
         split_name = _split_name_for_file_idx(file_idx)
