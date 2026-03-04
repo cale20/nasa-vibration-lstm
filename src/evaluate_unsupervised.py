@@ -109,19 +109,15 @@ def _resolve_model_name(model_type: str) -> str:
     return MODEL_ALIASES[key]
 
 
-def _load_file_artifacts(model_name: str, diagnostics_dir: str) -> tuple[np.ndarray, np.ndarray]:
+def _load_file_artifacts(model_name: str, diagnostics_dir: str) -> np.ndarray:
     scores_path = os.path.join(diagnostics_dir, f"{model_name}_file_scores.npy")
-    alerts_path = os.path.join(diagnostics_dir, f"{model_name}_file_alerts.npy")
-    if not os.path.exists(scores_path) or not os.path.exists(alerts_path):
+    if not os.path.exists(scores_path):
         raise FileNotFoundError(
             f"Missing standardized artifacts for {model_name}. "
-            f"Expected {scores_path} and {alerts_path}. Run model evaluation first."
+            f"Expected {scores_path}. Run model evaluation first."
         )
     scores = np.load(scores_path).astype(np.float32)
-    alerts = np.load(alerts_path).astype(np.uint8)
-    if scores.shape[0] != alerts.shape[0]:
-        raise ValueError(f"Shape mismatch for {model_name}: scores={scores.shape}, alerts={alerts.shape}")
-    return scores, alerts
+    return scores
 
 
 def _indices_for_split(file_records: List[dict], split_name: str) -> np.ndarray:
@@ -133,7 +129,7 @@ def evaluate_model(model_type: str) -> Dict[str, object]:
     """Evaluate unsupervised behavior for one model."""
     model_name = _resolve_model_name(model_type)
     diagnostics_dir = os.path.join(CONFIG["processed_folder"], "diagnostics")
-    scores, alerts = _load_file_artifacts(model_name, diagnostics_dir)
+    scores = _load_file_artifacts(model_name, diagnostics_dir)
     split_meta = load_split_metadata() or {}
     file_records = split_meta.get("file_records", [])
     if len(file_records) != int(scores.shape[0]):
@@ -145,7 +141,16 @@ def evaluate_model(model_type: str) -> Dict[str, object]:
     late_split = str(CONFIG["late_life_split"])
     healthy_idx = _indices_for_split(file_records, healthy_split)
     late_idx = _indices_for_split(file_records, late_split)
+    if healthy_idx.size == 0:
+        raise ValueError(f"No files found for healthy reference split: {healthy_split}")
     late_start = int(late_idx[0]) if late_idx.size > 0 else 0
+
+    # Calibrate file-level alert threshold on healthy file scores only.
+    file_alert_threshold = float(
+        np.percentile(scores[healthy_idx], float(CONFIG["unsup_alert_percentile"]))
+    )
+    alerts = (scores >= file_alert_threshold).astype(np.uint8)
+    np.save(os.path.join(diagnostics_dir, f"{model_name}_file_alerts.npy"), alerts)
 
     healthy_far = float(np.mean(alerts[healthy_idx])) if healthy_idx.size > 0 else float("nan")
     late_life_alert_rate = float(np.mean(alerts[late_idx])) if late_idx.size > 0 else float("nan")
@@ -181,6 +186,7 @@ def evaluate_model(model_type: str) -> Dict[str, object]:
         "first_persistent_alert_file_idx": first_persistent,
         "persistent_alert_count": persistent_count,
         "signal_separation": separation,
+        "file_alert_threshold": file_alert_threshold,
         "passes_healthy_far_cap": bool(
             np.isfinite(healthy_far) and healthy_far <= float(CONFIG["max_false_alarm_rate_healthy"])
         ),
@@ -192,6 +198,7 @@ def evaluate_model(model_type: str) -> Dict[str, object]:
             "late_life_split": late_split,
             "persistence_k": int(CONFIG["persistence_k"]),
             "persistence_m": int(CONFIG["persistence_m"]),
+            "unsup_alert_percentile": float(CONFIG["unsup_alert_percentile"]),
             "max_false_alarm_rate_healthy": float(CONFIG["max_false_alarm_rate_healthy"]),
             "trend_min_spearman": float(CONFIG["trend_min_spearman"]),
         },

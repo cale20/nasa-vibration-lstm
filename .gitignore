@@ -1,6 +1,7 @@
 # Data artifacts (large / machine-local)
 data/raw/
 data/processed/
+data/run_logs/
 models/
 *.npy
 *.npz

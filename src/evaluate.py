@@ -14,6 +14,7 @@ import argparse
 import json
 import logging
 import os
+import time
 import uuid
 from typing import List
 
@@ -23,11 +24,34 @@ import matplotlib.pyplot as plt
 
 from .config import CONFIG, configure_logging
 from .dataset import load_memmap_dataset, load_split_metadata
+from .logging_utils import fmt_seconds, log_note, log_progress
 from .preprocessing import create_sequences
 from .utils import plot_health_curve, list_ims_files
 
 
-def machine_health_curve(limit: int | None = None, save_path: str | None = None):
+def _decision_scores_batched(model, data: np.ndarray, batch_size: int = 200_000, progress_label: str | None = None):
+    """Compute IsolationForest decision_function in batches with optional progress logs."""
+    parts = []
+    total_batches = (data.shape[0] + batch_size - 1) // batch_size
+    start_time = time.perf_counter()
+    for batch_idx, start in enumerate(range(0, data.shape[0], batch_size), start=1):
+        end = min(start + batch_size, data.shape[0])
+        parts.append(model.decision_function(data[start:end]))
+        if progress_label and batch_idx % 5 == 0:
+            elapsed = time.perf_counter() - start_time
+            eta_sec = (elapsed / batch_idx) * max(total_batches - batch_idx, 0)
+            log_progress(
+                f"{progress_label}: batch {batch_idx}/{total_batches} | "
+                f"elapsed={fmt_seconds(elapsed)} | eta={fmt_seconds(eta_sec)}"
+            )
+    return np.concatenate(parts, axis=0) if parts else np.array([], dtype=np.float32)
+
+
+def machine_health_curve(
+    limit: int | None = None,
+    save_path: str | None = None,
+    log_interval_files: int | None = None,
+):
     """Score chronological files and generate baseline diagnostics.
 
     The function supports two data access modes:
@@ -78,11 +102,17 @@ def machine_health_curve(limit: int | None = None, save_path: str | None = None)
             )
 
     use_all_memmap = bool((split_meta or {}).get("all_memmap_enabled", True))
+    log_note(f"IF eval context: files={len(file_records)}, all_memmap={use_all_memmap}")
+    eval_start = time.perf_counter()
     if use_all_memmap:
         X_flat = load_memmap_dataset(flatten_for_tree=True, split="all")
-        scores = model.decision_function(X_flat)
+        scores = _decision_scores_batched(
+            model,
+            X_flat,
+            progress_label="IF decision scores (all memmap)",
+        )
         seq_counter = 0
-        for record in file_records:
+        for file_pos, record in enumerate(file_records):
             n_seqs = int(record["num_sequences"])
             if n_seqs <= 0:
                 continue
@@ -91,9 +121,16 @@ def machine_health_curve(limit: int | None = None, save_path: str | None = None)
             all_scores_parts.append(file_scores)
             file_mean_scores.append(float(np.nanmean(file_scores)))
             file_anomaly_rates.append(float(np.mean(file_scores <= threshold)))
+            if log_interval_files and (file_pos + 1) % log_interval_files == 0:
+                elapsed = time.perf_counter() - eval_start
+                eta_sec = (elapsed / (file_pos + 1)) * max(len(file_records) - (file_pos + 1), 0)
+                log_progress(
+                    f"IF eval (all memmap): file {file_pos + 1}/{len(file_records)} | "
+                    f"elapsed={fmt_seconds(elapsed)} | eta={fmt_seconds(eta_sec)}"
+                )
     else:
         # First pass: collect scores to derive threshold.
-        for record in file_records:
+        for file_pos, record in enumerate(file_records):
             signal = np.loadtxt(record["file_path"], dtype=np.float32).reshape(-1, 1)
             scaled = scaler.transform(signal)
             seqs = create_sequences(scaled, seq_len, CONFIG["stride"])
@@ -101,11 +138,18 @@ def machine_health_curve(limit: int | None = None, save_path: str | None = None)
                 continue
             file_scores = model.decision_function(seqs.reshape(len(seqs), -1))
             all_scores_parts.append(file_scores)
+            if log_interval_files and (file_pos + 1) % log_interval_files == 0:
+                elapsed = time.perf_counter() - eval_start
+                eta_sec = (elapsed / (file_pos + 1)) * max(len(file_records) - (file_pos + 1), 0)
+                log_progress(
+                    f"IF eval (stream pass1): file {file_pos + 1}/{len(file_records)} | "
+                    f"elapsed={fmt_seconds(elapsed)} | eta={fmt_seconds(eta_sec)}"
+                )
         scores = np.concatenate(all_scores_parts, axis=0) if all_scores_parts else np.array([], dtype=np.float32)
 
         # Second pass: per-file metrics. This keeps thresholding consistent
         # with the global score distribution built in pass one.
-        for record in file_records:
+        for file_pos, record in enumerate(file_records):
             signal = np.loadtxt(record["file_path"], dtype=np.float32).reshape(-1, 1)
             scaled = scaler.transform(signal)
             seqs = create_sequences(scaled, seq_len, CONFIG["stride"])
@@ -114,6 +158,13 @@ def machine_health_curve(limit: int | None = None, save_path: str | None = None)
             file_scores = model.decision_function(seqs.reshape(len(seqs), -1))
             file_mean_scores.append(float(np.nanmean(file_scores)))
             file_anomaly_rates.append(float(np.mean(file_scores <= threshold)))
+            if log_interval_files and (file_pos + 1) % log_interval_files == 0:
+                elapsed = time.perf_counter() - eval_start
+                eta_sec = (elapsed / (file_pos + 1)) * max(len(file_records) - (file_pos + 1), 0)
+                log_progress(
+                    f"IF eval (stream pass2): file {file_pos + 1}/{len(file_records)} | "
+                    f"elapsed={fmt_seconds(elapsed)} | eta={fmt_seconds(eta_sec)}"
+                )
 
     diagnostics_dir = os.path.join(CONFIG["processed_folder"], "diagnostics")
     os.makedirs(diagnostics_dir, exist_ok=True)
@@ -195,13 +246,18 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Compute Machine Health Curve from trained model and memmap dataset")
     parser.add_argument("--limit", type=int, default=None, help="Limit number of files to aggregate (demo)")
     parser.add_argument("--save", type=str, default=None, help="Save plot to given path instead of returning/displaying")
+    parser.add_argument("--log-interval-files", type=int, default=CONFIG["log_interval_files"])
     parser.add_argument("--verbose", action="store_true", help="Enable debug logging")
     args = parser.parse_args()
 
     configure_logging(logging.DEBUG if args.verbose else logging.INFO)
 
     try:
-        output = machine_health_curve(limit=args.limit, save_path=args.save)
+        output = machine_health_curve(
+            limit=args.limit,
+            save_path=args.save,
+            log_interval_files=args.log_interval_files,
+        )
         # If no save path was provided and we got a figure back, save it to processed/figures
         if args.save is None and output is not None and output.get("figure") is not None:
             try:

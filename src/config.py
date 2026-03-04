@@ -59,6 +59,8 @@ CONFIG = {
     "persistence_m": 5,
     "max_false_alarm_rate_healthy": 0.05,
     "trend_min_spearman": 0.5,
+    "log_interval_batches": 100,
+    "log_interval_files": 10,
 
     # Model artifact paths
     "dense_autoencoder_model_file": os.path.join(BASE_DIR, "models/dense_autoencoder.pt"),
@@ -72,7 +74,12 @@ def configure_logging(level=None):
 
     if level is None:
         level = logging.INFO
-    logging.basicConfig(level=level, format="[%(levelname)s] %(message)s")
+    logging.basicConfig(
+        level=level,
+        format="[%(asctime)s] %(message)s",
+        datefmt="%H:%M:%S",
+        force=True,
+    )
 
 
 def ensure_output_dirs():
