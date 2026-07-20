@@ -22,8 +22,11 @@ class TestDataset(unittest.TestCase):
                 path,
                 {"num_sequences": 5, "sequence_length": 4, "dtype": "float32", "stride": 1},
             )
+            # Close writer handle before reopening read-only (Windows file locks).
+            del arr
 
             old_path = CONFIG["memmap_file"]
+            loaded = None
             try:
                 CONFIG["memmap_file"] = path
                 loaded = load_memmap_dataset(flatten_for_tree=False, split="all")
@@ -31,6 +34,9 @@ class TestDataset(unittest.TestCase):
                 self.assertAlmostEqual(float(loaded[0, 0, 0]), 1.5)
             finally:
                 CONFIG["memmap_file"] = old_path
+                # Release memmap file handle so TemporaryDirectory cleanup succeeds on Windows.
+                if loaded is not None:
+                    del loaded
 
 
 if __name__ == "__main__":

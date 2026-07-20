@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from .config import CONFIG, configure_logging
+from .utils import annotate_chronological_splits
 
 
 def _safe_read_json(path: str):
@@ -33,7 +34,26 @@ def _normalize(values):
     return (arr - min_v) / (max_v - min_v)
 
 
-def run() -> str:
+def _plot_if_absolute_rate(if_metrics, diagnostics_dir: str) -> str | None:
+    """Rebuild Isolation Forest absolute anomaly-rate curve with split markers."""
+    if not if_metrics:
+        return None
+    vals = [row["anomaly_rate"] for row in if_metrics]
+    fig, ax = plt.subplots(figsize=(12, 5))
+    ax.plot(vals, marker="o", markersize=3, label="Isolation Forest", zorder=3)
+    ax.set_title("Per-file Anomaly Rate (Isolation Forest)")
+    ax.set_xlabel("File Order (Time)")
+    ax.set_ylabel("Anomaly Rate")
+    ax.grid(True)
+    annotate_chronological_splits(ax, x_max=max(len(vals) - 1, 0))
+    ax.legend(loc="upper right")
+    out_path = os.path.join(diagnostics_dir, "isolation_forest_anomaly_rate_curve.png")
+    fig.savefig(out_path, bbox_inches="tight")
+    plt.close(fig)
+    return out_path
+
+
+def run() -> dict[str, str]:
     """Build normalized anomaly-rate comparison figure across available models."""
     diagnostics_dir = os.path.join(CONFIG["processed_folder"], "diagnostics")
     if_metrics = _safe_read_json(os.path.join(diagnostics_dir, "isolation_forest_file_metrics.json"))
@@ -42,17 +62,21 @@ def run() -> str:
 
     fig, ax = plt.subplots(figsize=(12, 5))
     plotted = False
+    n_files = 0
     if if_metrics:
         vals = [row["anomaly_rate"] for row in if_metrics]
-        ax.plot(_normalize(vals), label="Isolation Forest")
+        n_files = max(n_files, len(vals))
+        ax.plot(_normalize(vals), label="Isolation Forest", zorder=3)
         plotted = True
     if dense_metrics:
         vals = [row["anomaly_rate"] for row in dense_metrics]
-        ax.plot(_normalize(vals), label="Dense AE")
+        n_files = max(n_files, len(vals))
+        ax.plot(_normalize(vals), label="Dense AE", zorder=3)
         plotted = True
     if lstm_metrics:
         vals = [row["anomaly_rate"] for row in lstm_metrics]
-        ax.plot(_normalize(vals), label="LSTM AE")
+        n_files = max(n_files, len(vals))
+        ax.plot(_normalize(vals), label="LSTM AE", zorder=3)
         plotted = True
 
     if not plotted:
@@ -64,10 +88,17 @@ def run() -> str:
     ax.set_xlabel("File Order (Time)")
     ax.set_ylabel("Normalized Anomaly Rate")
     ax.grid(True)
-    ax.legend()
+    annotate_chronological_splits(ax, x_max=max(n_files - 1, 0))
+    ax.legend(loc="upper right")
     out_path = os.path.join(diagnostics_dir, "model_comparison_anomaly_rate.png")
     fig.savefig(out_path, bbox_inches="tight")
-    return out_path
+    plt.close(fig)
+
+    if_path = _plot_if_absolute_rate(if_metrics, diagnostics_dir)
+    outputs = {"comparison": out_path}
+    if if_path:
+        outputs["isolation_forest_rate"] = if_path
+    return outputs
 
 
 def main():
@@ -75,8 +106,10 @@ def main():
     parser.add_argument("--verbose", action="store_true")
     args = parser.parse_args()
     configure_logging(logging.DEBUG if args.verbose else logging.INFO)
-    out_path = run()
-    logging.info("Saved model comparison figure to %s", out_path)
+    outputs = run()
+    logging.info("Saved model comparison figure to %s", outputs["comparison"])
+    if "isolation_forest_rate" in outputs:
+        logging.info("Saved Isolation Forest rate figure to %s", outputs["isolation_forest_rate"])
 
 
 if __name__ == "__main__":

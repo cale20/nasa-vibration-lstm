@@ -26,7 +26,7 @@ from .config import CONFIG, configure_logging
 from .dataset import load_memmap_dataset, load_split_metadata
 from .logging_utils import fmt_seconds, log_note, log_progress
 from .preprocessing import create_sequences
-from .utils import plot_health_curve, list_ims_files
+from .utils import annotate_chronological_splits, plot_health_curve, list_ims_files
 
 
 def _decision_scores_batched(model, data: np.ndarray, batch_size: int = 200_000, progress_label: str | None = None):
@@ -203,11 +203,12 @@ def machine_health_curve(
 
     fig = plot_health_curve(file_mean_scores, title="Machine Health Curve (Mean IF Score)")
     rate_fig, rate_ax = plt.subplots(figsize=(12, 5))
-    rate_ax.plot(file_anomaly_rates, marker="o", markersize=3)
-    rate_ax.set_title("Per-file Anomaly Rate")
+    rate_ax.plot(file_anomaly_rates, marker="o", markersize=3, zorder=3)
+    rate_ax.set_title("Per-file Anomaly Rate (Isolation Forest)")
     rate_ax.set_xlabel("File Order (Time)")
     rate_ax.set_ylabel("Anomaly Rate")
     rate_ax.grid(True)
+    annotate_chronological_splits(rate_ax, x_max=max(len(file_anomaly_rates) - 1, 0))
     rate_fig.savefig(
         os.path.join(diagnostics_dir, "isolation_forest_anomaly_rate_curve.png"),
         bbox_inches="tight",

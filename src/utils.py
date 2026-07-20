@@ -53,6 +53,34 @@ def list_ims_files(folder, seq_length=100):
 
     return valid_files
 
+def annotate_chronological_splits(ax, x_max=None):
+    """Shade healthy_train / healthy_val / test_mixed regions on a file-order axis.
+
+    Boundaries come from CONFIG split sizes. Regions are policy labels for
+    training and thresholding—not independent proof that every early file is
+    physically healthy.
+    """
+    from .config import CONFIG
+
+    train_end = int(CONFIG["healthy_train_files"])
+    val_end = train_end + int(CONFIG["healthy_val_files"])
+    if x_max is None:
+        x_max = ax.get_xlim()[1]
+    x_max = float(max(x_max, val_end))
+
+    ax.axvspan(0, train_end, color="#2ca02c", alpha=0.08, zorder=0)
+    ax.axvspan(train_end, val_end, color="#1f77b4", alpha=0.10, zorder=0)
+    ax.axvspan(val_end, x_max, color="#ff7f0e", alpha=0.06, zorder=0)
+    ax.axvline(train_end, color="#333333", linestyle="--", linewidth=1.0, alpha=0.7, zorder=2)
+    ax.axvline(val_end, color="#333333", linestyle="--", linewidth=1.0, alpha=0.7, zorder=2)
+    ymin, ymax = ax.get_ylim()
+    y_text = ymin + 0.92 * (ymax - ymin)
+    ax.text(train_end / 2.0, y_text, "healthy_train", ha="center", va="top", fontsize=8, color="#2ca02c")
+    ax.text((train_end + val_end) / 2.0, y_text, "healthy_val", ha="center", va="top", fontsize=8, color="#1f77b4")
+    ax.text((val_end + x_max) / 2.0, y_text, "test_mixed (monitor)", ha="center", va="top", fontsize=8, color="#d62728")
+    return train_end, val_end
+
+
 def plot_health_curve(scores, title="Machine Health Curve"):
     """Plot file-level mean anomaly scores"""
     fig, ax = plt.subplots(figsize=(12, 5))
@@ -61,6 +89,7 @@ def plot_health_curve(scores, title="Machine Health Curve"):
     ax.set_xlabel("File Order (Time)")
     ax.set_ylabel("Mean Anomaly Score")
     ax.grid(True)
+    annotate_chronological_splits(ax, x_max=max(len(scores) - 1, 0))
     return fig
 
 

@@ -2,7 +2,7 @@
 data/raw/
 data/processed/
 data/run_logs/
-models/
+/models/
 *.npy
 *.npz
 *.dat
